@@ -1,0 +1,71 @@
+INFO:root:Namespace(model_name='HCCF', model_mode='')
+INFO:root:--------------------------------------------- BEGIN: 2024-12-24 21:51:22 ---------------------------------------------
+INFO:root:
+===========================================
+ Arguments          | Values               
+===========================================
+ batch_size         | 256                 
+ data_appendix      |                     
+ dataset            | Grocery_and_Gourm...
+ dropout            | 0                   
+ early_stop         | 10                  
+ emb_size           | 285                 
+ epoch              | 200                 
+ eval_batch_size    | 256                 
+ gnn_layer          | 2                   
+ gpu                | 0                   
+ hyper_num          | 1                   
+ l2                 | 0                   
+ leaky              | 0.5                 
+ lr                 | 0.001               
+ main_metric        |                     
+ num_neg            | 1                   
+ num_workers        | 0                   
+ optimizer          | Adam                
+ random_seed        | 0                   
+ save_final_results | 1                   
+ test_all           | 0                   
+ topk               | 5,10,20,50          
+===========================================
+INFO:root:Device: cuda
+INFO:root:Load corpus from ../data\Grocery_and_Gourmet_Food\BaseReader.pkl
+INFO:root:#params: 6668430
+INFO:root:HCCF(
+  (gcnLayer): GCNLayer(
+    (act): LeakyReLU(negative_slope=0.5)
+  )
+  (hgnnLayer): HGNNLayer(
+    (act): LeakyReLU(negative_slope=0.5)
+  )
+  (edgeDropper): SpAdjDropEdge()
+)
+INFO:root:Test Before Training: (HR@5:0.0486,NDCG@5:0.0283,HR@10:0.0982,NDCG@10:0.0441,HR@20:0.1964,NDCG@20:0.0686,HR@50:0.5047,NDCG@50:0.1288)
+INFO:root:Optimizer: Adam
+INFO:root:Epoch 1     loss=0.6869 [49.0 s]	dev=(HR@5:0.1913,NDCG@5:0.1241) [2.0 s] *
+INFO:root:Epoch 2     loss=0.5263 [49.0 s]	dev=(HR@5:0.2618,NDCG@5:0.1739) [2.0 s] *
+INFO:root:Epoch 3     loss=0.4572 [49.1 s]	dev=(HR@5:0.3057,NDCG@5:0.2104) [2.0 s] *
+INFO:root:Epoch 4     loss=0.4116 [49.0 s]	dev=(HR@5:0.3318,NDCG@5:0.2291) [2.0 s] *
+INFO:root:Epoch 5     loss=0.3800 [48.9 s]	dev=(HR@5:0.3520,NDCG@5:0.2475) [2.0 s] *
+INFO:root:Epoch 6     loss=0.3139 [49.0 s]	dev=(HR@5:0.3836,NDCG@5:0.2714) [2.0 s] *
+INFO:root:Epoch 7     loss=0.2724 [49.0 s]	dev=(HR@5:0.3949,NDCG@5:0.2798) [2.0 s] *
+INFO:root:Epoch 8     loss=0.2165 [49.2 s]	dev=(HR@5:0.4046,NDCG@5:0.2872) [2.0 s] *
+INFO:root:Epoch 9     loss=0.1727 [48.9 s]	dev=(HR@5:0.4197,NDCG@5:0.2989) [2.0 s] *
+INFO:root:Epoch 10    loss=0.1374 [49.0 s]	dev=(HR@5:0.4272,NDCG@5:0.3040) [2.0 s] *
+INFO:root:Epoch 11    loss=0.1090 [49.0 s]	dev=(HR@5:0.4348,NDCG@5:0.3111) [2.0 s] *
+INFO:root:Epoch 12    loss=0.0930 [49.0 s]	dev=(HR@5:0.4331,NDCG@5:0.3123) [2.0 s] *
+INFO:root:Epoch 13    loss=0.0744 [49.2 s]	dev=(HR@5:0.4344,NDCG@5:0.3132) [2.0 s] *
+INFO:root:Epoch 14    loss=0.0641 [49.0 s]	dev=(HR@5:0.4345,NDCG@5:0.3135) [2.0 s] *
+INFO:root:Loss is Nan. Stop training at 15.
+INFO:root:
+Best Iter(dev)=   14	 dev=(HR@5:0.4345,NDCG@5:0.3135) [714.9 s] 
+INFO:root:Load model from ../model/HCCF/HCCF__Grocery_and_Gourmet_Food__0__lr=0.001__l2=0__emb_size=285__hyper_num=1__leaky=0.5__gnn_layer=2.pt
+INFO:root:
+Dev  After Training: (HR@5:0.4345,NDCG@5:0.3135,HR@10:0.5455,NDCG@10:0.3496,HR@20:0.6524,NDCG@20:0.3765,HR@50:0.8352,NDCG@50:0.4127)
+INFO:root:
+Test After Training: (HR@5:0.3632,NDCG@5:0.2519,HR@10:0.4814,NDCG@10:0.2903,HR@20:0.5986,NDCG@20:0.3198,HR@50:0.8048,NDCG@50:0.3605)
+INFO:root:Saving top-100 recommendation results to: ../log/HCCF\HCCF__Grocery_and_Gourmet_Food__0__lr=0\rec-HCCF-dev.csv
+INFO:root:dev Prediction results saved!
+INFO:root:Saving top-100 recommendation results to: ../log/HCCF\HCCF__Grocery_and_Gourmet_Food__0__lr=0\rec-HCCF-test.csv
+INFO:root:test Prediction results saved!
+INFO:root:
+--------------------------------------------- END: 2024-12-24 22:04:23 ---------------------------------------------
