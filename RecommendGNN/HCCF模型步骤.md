@@ -1,18 +1,17 @@
 # HCCF算法流程
-1. 读入数据
+### 输入
 
-   数据好像就是两个矩阵，一个训练矩阵，一个测试矩阵，然后矩阵n x m，n代表用户数量，m代表物品数量
-
+   数据为一个训练矩阵与一个测试矩阵，矩阵大小为n * m，n代表用户数量，m代表物品数量
    ```python
    	handler = DataHandler()
    	handler.LoadData()
    ```
 
    ```python
-   from scipy.sparse import csr_matrix, coo_matrix, dok_matrix #设计scipy对稀疏矩阵的三种处理方式，略
+   from scipy.sparse import csr_matrix, coo_matrix, dok_matrix #设计scipy对稀疏矩阵的三种处理方式
    class TrnData(data.Dataset):
    	def __init__(self, coomat):
-   		self.rows = coomat.row #这里rows和cols的数量是相等的，代表所有交互的结点
+   		self.rows = coomat.row #所有交互的结点
    		self.cols = coomat.col
    		self.dokmat = coomat.todok()#转换成字典形式
    		self.negs = np.zeros(len(self.rows)).astype(np.int32)
@@ -33,24 +32,55 @@
    		return self.rows[idx], self.cols[idx], self.negs[idx]
    ```
 
-   
+1. 模型参数输入：通过命令行参数解析获取模型的超参数，包括嵌入向量大小（`emb_size`）、超边数量（`hyper_num`）、Leaky ReLU的斜率（`leaky`）、GNN层数（`gnn_layer`）等。
+2. 数据输入：
+    - `corpus.data_df['train']`：训练数据，用于构建邻接矩阵。数据中包含用户ID和物品ID，用于表示用户与物品之间的交互关系。
+    - 在`predict`和`forward`方法中，输入`batch`和`feed_dict`数据批次。`batch`和`feed_dict`中应包含`user_id`和`item_id`等信息，`item_id`在`forward`方法中，第一列被视为正样本，后面的列被视为负样本。
 
-2. 准备模型
-3. 训练（不重要了）
+### 输出
+1. `predict`方法输出：返回预测结果，即用户对物品的预测评分（`allPreds`），形状为`(batch_size,)`，表示每个用户对相应物品的预测得分。
+2. `forward`方法输出：返回一个字典，包含以下内容：
+    - `ancEmbeds`：用户的嵌入向量，形状为`(batch_size, emb_size)`。
+    - `posEmbeds`：正样本物品的嵌入向量，形状为`(batch_size, emb_size)`。
+    - `negEmbeds`：负样本物品的嵌入向量，形状为`(batch_size, num_negatives, emb_size)`。
+    - `gnnLats`：GNN层的输出列表，每个元素是一个形状为`(user_num + item_num, emb_size)`的张量。
+    - `hyperLats`：HGNN层的输出列表，每个元素是一个形状为`(user_num + item_num, emb_size)`的张量。
+3. `loss`方法输出：返回计算得到的总损失，包括BPR损失、自监督学习损失和正则化损失。
+4. 模型输出：
+    - `forward`方法返回一个包含预测结果的字典`out_dict`，预测结果的形状为`[batch_size, n_candidates]`。
+    - `loss`方法返回计算得到的损失值，是一个`torch.Tensor`类型的标量。
+5. 数据集输出：
+    - `Dataset`类的`__getitem__`方法返回一个包含输入数据的字典`feed_dict`，不同模型的`feed_dict`内容有所不同。
+    - `collate_batch`方法将多个`feed_dict`整理成一个批次的字典，包含了整理后的输入数据和批次大小、阶段信息。 
 
-# 框架算法流程
+### 实现方法
+1. 模型初始化：
+    - `HCCF`类继承自`GeneralModel`，设置了`reader`、`runner`和`extra_log_args`等属性。
+    - `parse_model_args`方法解析命令行参数，用于配置模型的超参数。
+    - `normalizeAdj`方法对输入的邻接矩阵进行归一化处理，采用的方法是计算度矩阵的逆平方根，并与邻接矩阵相乘。
+    - `build_adjmat`方法根据训练数据构建邻接矩阵，将用户 - 用户、物品 - 物品以及用户 - 物品的关系合并到一个矩阵中，并进行归一化和转换为PyTorch的稀疏张量。
+    - `__init__`方法初始化模型的各种参数，包括嵌入向量、GCN层、HGNN层、超边参数和边丢弃模块等，并构建邻接矩阵。
+2. 前向传播：
+    - `forward`方法：
+        - 首先将用户和物品的嵌入向量连接起来，作为初始输入。
+        - 通过多层GNN和HGNN层的计算，逐步更新嵌入向量。在每一层中，GCN层通过邻接矩阵对嵌入向量进行传播，HGNN层通过超边对嵌入向量进行传播。
+        - 最后将所有层的输出相加，得到最终的用户和物品嵌入向量，并根据输入的`feed_dict`提取出正样本和负样本的嵌入向量。
+3. 预测：
+    - `predict`方法：
+        - 与`forward`方法类似，通过多层GNN和HGNN层计算得到最终的用户和物品嵌入向量。
+        - 根据输入的`batch`数据，提取用户和物品的嵌入向量，并计算它们的点积，得到预测得分。
+4. 损失计算：
+    - `calcRegLoss`方法：计算模型中所有参数的L2正则化损失。
+    - `loss`方法：
+        - 计算BPR损失，通过`pairPredict`函数计算用户对正样本和负样本的评分差异，并使用对数 sigmoid 函数计算损失。
+        - 计算自监督学习损失，通过`contrastLoss`函数对GNN层和HGNN层的输出进行对比学习，计算用户和物品的对比损失。
+        - 将BPR损失、自监督学习损失和正则化损失相加，得到总损失。
+5. 模型组件：
+    - `GCNLayer`类：定义了图卷积网络层，通过`spmm`函数实现邻接矩阵与嵌入向量的乘法，并使用Leaky ReLU激活函数。
+    - `HGNNLayer`类：定义了超图神经网络层，通过两次矩阵乘法实现超边对嵌入向量的传播，并使用Leaky ReLU激活函数。
+    - `SpAdjDropEdge`类：定义了一个用于随机丢弃邻接矩阵边的模块，以防止过拟合。通过随机生成掩码，根据保留率决定是否保留每条边。
 
-1. 确定GPU
-2. 利用所选模型的reader读入数据。
-3. 定义所选模型，将其放到gpu上
-4. 定义所选模型的数据集，这里用到了之前reader读出来的数据
-5. 运行模型（训练），这里用到了该模型的runner
-6. 评估模型在验证集和测试集上的结果
-
-
-
-**一些参考**
-
+### 实现参数
 + generalModel的基本参数
 
 ```python
@@ -59,16 +89,20 @@
 		super().__init__(args, corpus)
 		self.user_num = corpus.n_users #用户数量
 		self.item_num = corpus.n_items #物品数量
-		self.num_neg = args.num_neg #采样负样本数量,在train之前要采样负样本，因为train里面本身没有负样本
+		self.num_neg = args.num_neg #采样负样本数量,在train之前要采样负样本，train里面本身没有负样本
 		self.dropout = args.dropout 
 		self.test_all = args.test_all
 ```
+    - `num_neg`：训练期间的负样本数量。
+    - `dropout`：每个深度层的丢弃概率。
+    - `test_all`：是否在所有物品上进行测试。
+    -`corpus`对象**：一个`BaseReader`类型的对象，包含了数据集的相关信息，如用户数量、物品数量、用户历史记录、点击集合等。
 
 + BaseReader的基本参数：
 
   + 关键是train dev test的**self.data_df**(字典)，里面就是从数据集读出来的原始数据
 
-  + 以及这个train_clicked_set和residual_clicked_set，似乎代表每个用户的点击物品集合，和未点击物品集合，是对原始数据经过二次处理得到的
+  + 以及这个train_clicked_set和residual_clicked_set，代表每个用户的点击物品集合，和未点击物品集合，是对原始数据经过二次处理得到的
 
 ```python
   class BaseReader(object):
@@ -130,9 +164,8 @@
 + Reader得到的data_df是如何传到Dataset中的:
   + 用这个corpus和phase，courpus是reader的对象实例，phase是{train dev test}其中之一
 
-
 ```python 
-	class Dataset(BaseDataset):#就是torch的Dataset类
+	class Dataset(BaseDataset):
 		def __init__(self, model, corpus, phase: str):
 			self.model = model  # model object reference
 			self.corpus = corpus  # reader object reference
@@ -143,8 +176,6 @@
 			self.data = corpus.data_df[phase].to_dict('list')
 			# ↑ DataFrame is not compatible with multi-thread operations
 ```
-
-
 
 + reader之后的数据
 
@@ -180,3 +211,11 @@ print("CSR matrix indices:", csr_mat.indices)#列索引
 print("CSR matrix indptr:", csr_mat.indptr)#每行第一个非零元素的索引
 ```
 
+# 框架算法流程
+
+1. 确定GPU
+2. 利用所选模型的reader读入数据。
+3. 定义所选模型，将其放到gpu上
+4. 定义所选模型的数据集，这里用到了之前reader读出来的数据
+5. 运行模型（训练），这里用到了该模型的runner
+6. 评估模型在验证集和测试集上的结果
