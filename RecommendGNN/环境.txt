@@ -1,0 +1,15 @@
+python==3.10.4
+cudatoolkit==10.2.89
+numpy==1.23.5
+ipython==8.10.0
+jupyter==1.0.0
+pandas==1.4.4
+pillow==11.0.0
+scikit-learn==1.6.0
+sympy==1.13.1
+scipy==1.14.1
+pickle
+tqdm==4.66.1
+urllib3==2.3.0
+yaml
+pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1+cu118 -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple -f https://download.pytorch.org/whl/torch_stable.html
