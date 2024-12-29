@@ -18,9 +18,9 @@ class HCCF(GeneralModel):
 
 	@staticmethod
 	def parse_model_args(parser):
-		parser.add_argument('--emb_size', type=int, default=279,
+		parser.add_argument('--emb_size', type=int, default=128,
                             help='Size of embedding vectors.')
-		parser.add_argument('--hyper_num', type=int, default=1,
+		parser.add_argument('--hyper_num', type=int, default=8,
                             help='number of hyperedges')
 		parser.add_argument('--leaky', default=0.5, type=float, help='slope of leaky relu')
 		parser.add_argument('--gnn_layer', default=2, type=int, help='number of gnn layers')
